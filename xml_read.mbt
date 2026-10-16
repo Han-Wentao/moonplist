@@ -189,7 +189,8 @@ fn XmlReader::nonspace(
 ) -> XmlToken raise PlistError {
   while true {
     match self.next(preamble~) {
-      Content(s) if s.is_blank() => continue
+      Content(s) if s.all(c => c == ' ' || c == '\t' || c == '\n' || c == '\r') =>
+        continue
       token => return token
     }
   }
@@ -222,11 +223,13 @@ fn xml_integer(text : String) -> Value raise PlistError {
   if t.is_empty() {
     raise Invalid("empty integer")
   }
-  let signed : Int64? = Some(@string.parse_int64(t)) catch { _ => None }
+  let signed : Int64? = Some(@string.parse_int64(t, base=10)) catch {
+    _ => None
+  }
   match signed {
     Some(n) => Integer(n)
     None => {
-      let n = @string.parse_uint64(t) catch {
+      let n = @string.parse_uint64(t, base=10) catch {
         _ => raise Invalid("integer outside supported 64-bit range")
       }
       if n <= 9223372036854775807UL {
@@ -253,6 +256,51 @@ fn XmlReader::value(
   let (tag, empty) = match token {
     Open(tag, empty) => (tag, empty)
     _ => raise Invalid("expected plist value element")
+  }
+  if tag == "array" {
+    let items : Array[Value] = []
+    if !empty {
+      while true {
+        match self.nonspace() {
+          Close("array") => break
+          token => {
+            if items.length() >= self.limits.max_items {
+              raise Limit("XML array item budget")
+            }
+            items.push(self.value(token, depth + 1))
+          }
+        }
+      }
+    }
+    return List(items)
+  }
+  if tag == "dict" {
+    let entries : Array[(String, Value)] = []
+    let keys : Map[String, Bool] = Map([])
+    if !empty {
+      while true {
+        match self.nonspace() {
+          Close("dict") => break
+          Open("key", closed) => {
+            if entries.length() >= self.limits.max_items {
+              raise Limit("XML dictionary item budget")
+            }
+            self.nodes += 1
+            if self.nodes > self.limits.max_objects {
+              raise Limit("XML key object budget")
+            }
+            let key = self.scalar("key", closed)
+            if keys.contains(key) {
+              raise Invalid("duplicate XML dictionary key")
+            }
+            keys[key] = true
+            entries.push((key, self.value(self.nonspace(), depth + 1)))
+          }
+          _ => raise Invalid("expected dictionary key or closing dict")
+        }
+      }
+    }
+    return Dict(entries)
   }
   let text = self.scalar(tag, empty)
   match tag {
