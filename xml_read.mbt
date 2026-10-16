@@ -12,6 +12,7 @@ priv struct XmlReader {
   mut pos : Int32
   limits : Limits
   mut nodes : Int32
+  mut doctype : Bool
 }
 
 ///|
@@ -70,8 +71,34 @@ fn XmlReader::next(
       self.pos += 3
       continue
     }
+    if self.starts("<![CDATA[") {
+      self.pos += 9
+      let start = self.pos
+      while !self.starts("]]>") {
+        if self.pos >= self.text.length() {
+          raise Invalid("unterminated CDATA")
+        }
+        self.pos += 1
+      }
+      let raw = self.text[start:self.pos].to_owned()
+      ignore(escape_xml_text(raw))
+      self.pos += 3
+      return Content(
+        raw.replace_all(old="\r\n", new="\n").replace_all(old="\r", new="\n"),
+      )
+    }
     if self.starts("<?") {
+      let start = self.pos
       self.pos += 2
+      let target = self.name()
+      if target.to_lower() == "xml" {
+        if target != "xml" ||
+          (start != 0 && !(start == 1 && self.text[0] == 0xfeff)) {
+          raise Invalid("XML declaration must be first")
+        }
+        self.declaration()
+        continue
+      }
       while !self.starts("?>") {
         if self.pos >= self.text.length() {
           raise Invalid("unterminated processing instruction")
@@ -82,10 +109,12 @@ fn XmlReader::next(
       continue
     }
     if self.starts("<!DOCTYPE") {
-      if !preamble {
+      if !preamble || self.doctype {
         raise Invalid("DOCTYPE outside preamble")
       }
+      self.doctype = true
       self.pos += 9
+      let body_start = self.pos
       self.space()
       if self.name() != "plist" {
         raise Invalid("DOCTYPE root must be plist")
@@ -110,6 +139,14 @@ fn XmlReader::next(
       }
       if self.pos >= self.text.length() {
         raise Invalid("unterminated DOCTYPE")
+      }
+      let body = self.text[body_start:self.pos].to_owned().trim().to_owned()
+      if body != "plist" &&
+        body !=
+        "plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"" {
+        raise Unsupported(
+          "nonstandard DOCTYPE; external entities are never resolved",
+        )
       }
       self.pos += 1
       continue
@@ -330,7 +367,7 @@ pub fn decode_xml(
   limits~ : Limits = Limits::default(),
 ) -> Value raise PlistError {
   limits.check()
-  if text.length() > limits.max_bytes {
+  if @utf8.encode(text).length() > limits.max_bytes {
     raise Limit("XML text budget")
   }
   let reader : XmlReader = {
@@ -342,6 +379,7 @@ pub fn decode_xml(
     },
     limits,
     nodes: 0,
+    doctype: false,
   }
   match reader.nonspace(preamble=true) {
     Open("plist", false) => ()
@@ -357,4 +395,71 @@ pub fn decode_xml(
     _ => raise Invalid("trailing XML document content")
   }
   value
+}
+
+///|
+fn XmlReader::declaration(self : XmlReader) -> Unit raise PlistError {
+  let mut version = false
+  let mut encoding = false
+  let mut standalone = false
+  while !self.starts("?>") {
+    let before = self.pos
+    self.space()
+    if self.starts("?>") {
+      break
+    }
+    if self.pos == before {
+      raise Invalid("declaration attribute whitespace")
+    }
+    let name = self.name()
+    self.space()
+    if !self.starts("=") {
+      raise Invalid("declaration equals")
+    }
+    self.pos += 1
+    self.space()
+    if self.pos >= self.text.length() {
+      raise Invalid("declaration quote")
+    }
+    let q = self.text[self.pos]
+    if q != 34 && q != 39 {
+      raise Invalid("declaration quote")
+    }
+    self.pos += 1
+    let start = self.pos
+    while self.pos < self.text.length() && self.text[self.pos] != q {
+      self.pos += 1
+    }
+    if self.pos >= self.text.length() {
+      raise Invalid("unterminated declaration")
+    }
+    let value = self.text[start:self.pos].to_owned()
+    self.pos += 1
+    match name {
+      "version" if !version && !encoding && !standalone => {
+        if value != "1.0" {
+          raise Unsupported("XML version must be 1.0")
+        }
+        version = true
+      }
+      "encoding" if version && !encoding && !standalone => {
+        let v = value.to_lower()
+        if v != "utf-8" && v != "utf-16" {
+          raise Unsupported("XML encoding must be UTF-8 or UTF-16")
+        }
+        encoding = true
+      }
+      "standalone" if version && !standalone => {
+        if value != "yes" && value != "no" {
+          raise Invalid("standalone declaration")
+        }
+        standalone = true
+      }
+      _ => raise Invalid("XML declaration attributes or order")
+    }
+  }
+  if !version {
+    raise Invalid("XML declaration needs version")
+  }
+  self.pos += 2
 }
