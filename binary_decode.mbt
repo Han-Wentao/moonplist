@@ -153,11 +153,84 @@ pub fn decode_binary(
   limits~ : Limits = Limits::default(),
 ) -> Value raise PlistError {
   let info = inspect_binary(data, limits~)
-  let pos = read_uint(
-    data,
-    info.offset_table + info.root_id * info.offset_width,
-    info.offset_width,
-    data.length() - 32,
-  ).to_int()
-  decode_scalar(data, data[pos].to_int(), pos + 1, info.offset_table, limits)
+  let active = Array::make(info.object_count, false)
+  let visits = Ref(0)
+  fn decode(id : Int32, depth : Int32) -> Value raise PlistError {
+    if depth > limits.max_depth {
+      raise Limit("binary nesting budget")
+    }
+    visits.val += 1
+    if visits.val > limits.max_objects {
+      raise Limit("expanded binary object budget")
+    }
+    if id < 0 || id >= info.object_count {
+      raise Invalid("object reference out of range")
+    }
+    if active[id] {
+      raise Invalid("cyclic binary object graph")
+    }
+    let pos = read_uint(
+      data,
+      info.offset_table + id * info.offset_width,
+      info.offset_width,
+      data.length() - 32,
+    ).to_int()
+    let marker = data[pos].to_int()
+    let kind = marker >> 4
+    if kind != 10 && kind != 13 {
+      return decode_scalar(data, marker, pos + 1, info.offset_table, limits)
+    }
+    active[id] = true
+    let (count, start) = binary_length(
+      data,
+      pos + 1,
+      marker & 15,
+      info.offset_table,
+      limits,
+    )
+    if count > limits.max_items {
+      raise Limit("binary container budget")
+    }
+    let groups = if kind == 13 { 2 } else { 1 }
+    if count > (info.offset_table - start) / info.reference_width / groups {
+      raise Invalid("truncated container references")
+    }
+    fn reference(index : Int32) -> Int32 raise PlistError {
+      bounded_int(
+        read_uint(
+          data,
+          start + index * info.reference_width,
+          info.reference_width,
+          info.offset_table,
+        ),
+        info.object_count - 1,
+        "container reference",
+      )
+    }
+    let result = if kind == 10 {
+      let values : Array[Value] = []
+      for i = 0; i < count; i = i + 1 {
+        values.push(decode(reference(i), depth + 1))
+      }
+      Value::List(values)
+    } else {
+      let entries : Array[(String, Value)] = []
+      let keys : Map[String, Bool] = Map([])
+      for i = 0; i < count; i = i + 1 {
+        let key = match decode(reference(i), depth + 1) {
+          Text(key) => key
+          _ => raise Invalid("dictionary key is not a string")
+        }
+        if keys.contains(key) {
+          raise Invalid("duplicate binary dictionary key")
+        }
+        keys[key] = true
+        entries.push((key, decode(reference(count + i), depth + 1)))
+      }
+      Value::Dict(entries)
+    }
+    active[id] = false
+    result
+  }
+  decode(info.root_id, 0)
 }
