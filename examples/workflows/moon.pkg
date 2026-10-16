@@ -1,0 +1,5 @@
+import {
+  "Han-Wentao/moonplist",
+}
+
+pkgtype(kind: "executable")
