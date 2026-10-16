@@ -1,0 +1,120 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Han-Wentao/moonplist"
+
+// Values
+pub fn apply_patch(Value, Array[Patch], limits? : Limits) -> Value raise PlistError
+
+pub fn convert(Bytes, Format, limits? : Limits) -> Bytes raise PlistError
+
+pub fn decode(Bytes, limits? : Limits) -> Value raise PlistError
+
+pub fn decode_base64(String, limits? : Limits) -> Bytes raise PlistError
+
+pub fn decode_binary(Bytes, limits? : Limits) -> Value raise PlistError
+
+pub fn decode_hex(String, limits? : Limits) -> Bytes raise PlistError
+
+pub fn decode_xml(String, limits? : Limits) -> Value raise PlistError
+
+pub fn detect_format(Bytes) -> Format
+
+pub fn diff(Value, Value, limits? : Limits) -> Array[Patch] raise PlistError
+
+pub fn encode(Value, Format, limits? : Limits) -> Bytes raise PlistError
+
+pub fn encode_base64(Bytes) -> String
+
+pub fn encode_binary(Value, limits? : Limits) -> Bytes raise PlistError
+
+pub fn encode_hex(Bytes) -> String
+
+pub fn encode_xml(Value, pretty? : Bool, limits? : Limits) -> String raise PlistError
+
+pub fn equivalent(Value, Value) -> Bool
+
+pub fn escape_xml_text(String) -> String raise PlistError
+
+pub fn format_date(Double) -> String raise PlistError
+
+pub fn format_pointer(Array[String]) -> String
+
+pub fn insert(Value, String, Value, limits? : Limits) -> Value raise PlistError
+
+pub fn inspect_binary(Bytes, limits? : Limits) -> BinaryInfo raise PlistError
+
+pub fn lookup(Value, String, limits? : Limits) -> Value raise PlistError
+
+pub fn parse_date(String) -> Double raise PlistError
+
+pub fn parse_pointer(String) -> Array[String] raise PlistError
+
+pub fn remove(Value, String, limits? : Limits) -> Value raise PlistError
+
+pub fn replace(Value, String, Value, limits? : Limits) -> Value raise PlistError
+
+pub fn unescape_xml_text(String) -> String raise PlistError
+
+pub fn validate(Value, limits? : Limits) -> Unit raise PlistError
+
+// Errors
+pub(all) suberror PlistError {
+  Invalid(String)
+  Limit(String)
+  Unsupported(String)
+  PathError(String)
+}
+
+// Types and methods
+pub(all) struct BinaryInfo {
+  object_count : Int
+  root_id : Int
+  offset_table : Int
+  offset_width : Int
+  reference_width : Int
+}
+
+pub(all) enum Format {
+  Binary
+  Xml
+} derive(Eq)
+pub fn Format::equal(Self, Self) -> Bool
+pub fn Format::not_equal(Self, Self) -> Bool
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_objects : Int
+  max_depth : Int
+  max_items : Int
+}
+pub fn Limits::default() -> Self
+
+pub(all) enum Patch {
+  Add(String, Value)
+  Replace(String, Value)
+  Remove(String)
+  Test(String, Value)
+  Copy(String, String)
+  Move(String, String)
+}
+
+pub(all) enum Value {
+  Null
+  Boolean(Bool)
+  Integer(Int64)
+  Unsigned(UInt64)
+  Real(Double)
+  Text(String)
+  Data(Bytes)
+  Date(Double)
+  Uid(UInt64)
+  List(Array[Value])
+  Dict(Array[(String, Value)])
+} derive(Eq)
+pub fn Value::equal(Self, Self) -> Bool
+pub fn Value::get(Self, String) -> Self?
+pub fn Value::kind(Self) -> String
+pub fn Value::not_equal(Self, Self) -> Bool
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,45 @@
+name: MoonPlist verification
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  targets:
+    name: target-${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [wasm-gc, wasm, js, native]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install official stable MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/moon-install.sh
+          bash /tmp/moon-install.sh
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon version --all
+      - run: moon update
+      - run: moon check --target "${{ matrix.target }}" --deny-warn
+      - run: moon build --target "${{ matrix.target }}" --deny-warn
+      - if: matrix.target != 'wasm'
+        run: moon test --target "${{ matrix.target }}" --deny-warn
+      - if: matrix.target != 'wasm'
+        run: moon run examples/workflows --target "${{ matrix.target }}"
+  interoperability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install official stable MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/moon-install.sh
+          bash /tmp/moon-install.sh
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon update
+      - run: moon info && moon fmt --check
+      - run: git diff --exit-code -- '*.mbti'
+      - run: python3 scripts/differential.py
+      - name: Fixtures must be reproducible
+        run: git diff --exit-code

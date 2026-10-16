@@ -1,0 +1,24 @@
+MoonPlist
+Copyright 2026 Han-Wentao
+
+Original MoonBit implementation; Apache License 2.0.
+No third-party implementation source or upstream fixtures are incorporated.
+
+Behavioral references (read, not translated/copied):
+- Apple Property List XML DTD and Core Foundation property-list concepts:
+  https://www.apple.com/DTDs/PropertyList-1.0.dtd
+- CPython plistlib (Python Software Foundation License 2.0), API/docs and
+  3.13 source used to understand binary scalar/trailer semantics:
+  https://docs.python.org/3/library/plistlib.html
+  https://github.com/python/cpython/blob/3.13/Lib/plistlib.py
+  Python's installed standard library is executed as an independent oracle;
+  fixtures are synthesized by this repository's own deterministic script.
+- RFC 6901 pointer escaping; patch operations are typed in-memory operations,
+  not an RFC 6902 JSON wire-format implementation.
+  https://www.rfc-editor.org/rfc/rfc6901
+
+Adjacent MoonBit code read solely to establish semantic non-duplication:
+- moonbitlang/typst.mbt syntect/settings.mbt (Apache-2.0)
+- mizchi/pkl-mbt eval_render_plist.mbt (not incorporated; license not verified)
+- moonbit-community/proton auto-launch and package XML emitters (not incorporated)
+No source from these projects is shipped or relicensed by this notice.
