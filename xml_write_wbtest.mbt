@@ -55,3 +55,13 @@ test "nonfinite reals are explicit not confused with dates" {
     assert_true(v is Real(x) && (x.is_nan() || x.is_inf()))
   }
 }
+
+///|
+test "XML writer retains IEEE negative zero" {
+  let v = Real(0x8000000000000000UL.reinterpret_as_double())
+  let decoded = decode_xml(encode_xml(v))
+  match decoded {
+    Real(d) => assert_eq(d.reinterpret_as_uint64(), 0x8000000000000000UL)
+    _ => abort("real expected")
+  }
+}

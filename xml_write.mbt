@@ -53,6 +53,8 @@ pub fn encode_xml(
       Real(d) => {
         let text = if d.is_nan() {
           "nan"
+        } else if d == 0.0 && d.reinterpret_as_uint64() == 0x8000000000000000UL {
+          "-0.0"
         } else if d.is_pos_inf() {
           "inf"
         } else if d.is_neg_inf() {
