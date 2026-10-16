@@ -37,6 +37,13 @@ test "expanded DAG budget rejects repeated references" {
     "62706c697374303009a20000a2010108090c000000000000010100000000000000030000000000000002000000000000000f",
   )
   assert_true(
+    decode_binary(raw) ==
+    List([
+      List([Boolean(true), Boolean(true)]),
+      List([Boolean(true), Boolean(true)]),
+    ]),
+  )
+  assert_true(
     try {
       ignore(
         decode_binary(raw, limits={ ..Limits::default(), max_objects: 4, }),
