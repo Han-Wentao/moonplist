@@ -94,19 +94,72 @@ pub fn encode_binary(
   limits~ : Limits = Limits::default(),
 ) -> Bytes raise PlistError {
   validate(value, limits~)
+  let objects : Array[(Value, Array[Int32])] = []
+  fn flatten(v : Value) -> Int32 raise PlistError {
+    if objects.length() >= limits.max_objects {
+      raise Limit("binary writer object budget")
+    }
+    let id = objects.length()
+    let refs : Array[Int32] = []
+    objects.push((v, refs))
+    match v {
+      List(items) =>
+        for item in items {
+          refs.push(flatten(item))
+        }
+      Dict(entries) => {
+        for entry in entries {
+          refs.push(flatten(Text(entry.0)))
+        }
+        for entry in entries {
+          refs.push(flatten(entry.1))
+        }
+      }
+      _ => ()
+    }
+    id
+  }
+  let root = flatten(value)
+  let rw = uint_width((objects.length() - 1).to_uint64())
+  let offsets : Array[Int32] = []
   let out = @buffer.Buffer()
   out.write_bytes(b"bplist00"[:])
-  encode_scalar(out, value)
+  for (v, refs) in objects {
+    offsets.push(out.length())
+    match v {
+      List(items) => {
+        write_length(out, 0xa0, items.length())
+        for id in refs {
+          write_uint(out, id.to_uint64(), rw)
+        }
+      }
+      Dict(entries) => {
+        write_length(out, 0xd0, entries.length())
+        for id in refs {
+          write_uint(out, id.to_uint64(), rw)
+        }
+      }
+      _ => encode_scalar(out, v)
+    }
+    if out.length() > limits.max_bytes {
+      raise Limit("binary object byte budget")
+    }
+  }
   let table = out.length()
   let ow = uint_width(table.to_uint64())
-  write_uint(out, 8UL, ow)
+  if offsets.length() > (limits.max_bytes - table - 32) / ow {
+    raise Limit("binary trailer byte budget")
+  }
+  for off in offsets {
+    write_uint(out, off.to_uint64(), ow)
+  }
   for i = 0; i < 6; i = i + 1 {
     out.write_byte(b'\x00')
   }
   out.write_byte(ow.to_byte())
-  out.write_byte(b'\x01')
-  write_uint(out, 1UL, 8)
-  write_uint(out, 0UL, 8)
+  out.write_byte(rw.to_byte())
+  write_uint(out, objects.length().to_uint64(), 8)
+  write_uint(out, root.to_uint64(), 8)
   write_uint(out, table.to_uint64(), 8)
   if out.length() > limits.max_bytes {
     raise Limit("encoded binary byte budget")
