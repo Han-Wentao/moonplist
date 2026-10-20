@@ -1,5 +1,7 @@
 name: MoonPlist verification
 on: [push, pull_request]
+env:
+  MOONBIT_INSTALL_VERSION: "0.10.16+b1a0e846e"
 permissions:
   contents: read
 jobs:
@@ -12,7 +14,7 @@ jobs:
         target: [wasm-gc, wasm, js, native]
     steps:
       - uses: actions/checkout@v4
-      - name: Install official stable MoonBit
+      - name: Install pinned official MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/moon-install.sh
           bash /tmp/moon-install.sh
@@ -32,12 +34,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install official stable MoonBit
+      - name: Install pinned official MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/moon-install.sh
           bash /tmp/moon-install.sh
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - run: moon update
+      - run: moon version --all
       - run: moon info && moon fmt --check
       - run: git diff --exit-code -- '*.mbti'
       - run: python3 scripts/differential.py

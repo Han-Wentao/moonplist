@@ -70,7 +70,7 @@ binary 不支持集合、任意精度整数、超过64位 UID、非字符串字�
 
 ## 本地验证
 
-已使用 moon 0.1.20261012 / moonc 0.10.15 验证。需要 Node 和 Python ≥3.8 运行 JS/差分门禁。
+已使用 moon 0.1.20261016 / moonc 0.10.16+b1a0e846e 验证。需要 Node 和 Python ≥3.8 运行 JS/差分门禁。
 
 ```sh
 moon info
@@ -86,7 +86,7 @@ python scripts/differential.py
 
 0.1.1 修复二进制对象数临界值、3/5/6/7 字节宽度、XML 长前导零字符引用、转义路径与差分中间态限额，以及 XML 注释/处理指令/文档外内容的词法校验。新增合法 XML 正控制、数组编辑模型、特殊键路径和512组 IEEE 位模式回归。`examples/interop/main.mbt` 是脚本生成的测试夹具，不计核心代码量。
 
-CI 对 wasm-gc / wasm / js / native 做严格检查和构建，wasm-gc / js / Ubuntu native 运行测试与三个流程；wasm 仅编译。安装官方当前稳定版，版本会在日志中打印，未来版本可能有兼容性差异。最新真实结果见仓库 Actions，不能仅由徽章/本地命令推断通过。
+CI 对 wasm-gc / wasm / js / native 做严格检查和构建，wasm-gc / js / Ubuntu native 运行测试与三个流程；wasm 仅编译。固定安装官方 `0.10.16+b1a0e846e` 工具链（安装器环境变量 `MOONBIT_INSTALL_VERSION`），版本会在日志中打印；升级时须重新生成接口并复验，避免浮动版本导致 `Int` / `Int32` 接口文本漂移。最新真实结果见仓库 Actions，不能仅由徽章/本地命令推断通过。
 
 ## 参考与竞赛工程记录
 

@@ -66,11 +66,11 @@ pub(all) suberror PlistError {
 
 // Types and methods
 pub(all) struct BinaryInfo {
-  object_count : Int
-  root_id : Int
-  offset_table : Int
-  offset_width : Int
-  reference_width : Int
+  object_count : Int32
+  root_id : Int32
+  offset_table : Int32
+  offset_width : Int32
+  reference_width : Int32
 }
 
 pub(all) enum Format {
@@ -81,10 +81,10 @@ pub fn Format::equal(Self, Self) -> Bool
 pub fn Format::not_equal(Self, Self) -> Bool
 
 pub(all) struct Limits {
-  max_bytes : Int
-  max_objects : Int
-  max_depth : Int
-  max_items : Int
+  max_bytes : Int32
+  max_objects : Int32
+  max_depth : Int32
+  max_items : Int32
 }
 pub fn Limits::default() -> Self
 
