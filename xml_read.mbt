@@ -34,12 +34,24 @@ fn XmlReader::space(self : XmlReader) -> Unit {
 ///|
 fn XmlReader::name(self : XmlReader) -> String raise PlistError {
   let start = self.pos
+  if start >= self.text.length() {
+    raise Invalid("missing XML name")
+  }
+  let first = self.text[start].to_int()
+  if !((first >= 65 && first <= 90) ||
+    (first >= 97 && first <= 122) ||
+    first == 95 ||
+    first == 58) {
+    raise Invalid("invalid XML name start")
+  }
   while self.pos < self.text.length() {
     let c = self.text[self.pos].to_int()
     if !((c >= 65 && c <= 90) ||
       (c >= 97 && c <= 122) ||
       (c >= 48 && c <= 57) ||
       c == 45 ||
+      c == 46 ||
+      c == 58 ||
       c == 95) {
       break
     }
@@ -55,6 +67,7 @@ fn XmlReader::name(self : XmlReader) -> String raise PlistError {
 fn XmlReader::next(
   self : XmlReader,
   preamble~ : Bool = false,
+  document~ : Bool = false,
 ) -> XmlToken raise PlistError {
   while true {
     if self.pos >= self.text.length() {
@@ -72,6 +85,9 @@ fn XmlReader::next(
       continue
     }
     if self.starts("<![CDATA[") {
+      if document {
+        raise Invalid("CDATA outside document element")
+      }
       self.pos += 9
       let start = self.pos
       while !self.starts("]]>") {
@@ -91,6 +107,13 @@ fn XmlReader::next(
       let start = self.pos
       self.pos += 2
       let target = self.name()
+      if target.to_lower() != "xml" && !self.starts("?>") {
+        let before = self.pos
+        self.space()
+        if self.pos == before {
+          raise Invalid("processing instruction needs whitespace")
+        }
+      }
       if target.to_lower() == "xml" {
         if target != "xml" ||
           (start != 0 && !(start == 1 && self.text[0] == 0xfeff)) {
@@ -116,6 +139,9 @@ fn XmlReader::next(
       self.pos += 9
       let body_start = self.pos
       self.space()
+      if self.pos == body_start {
+        raise Invalid("DOCTYPE needs whitespace")
+      }
       if self.name() != "plist" {
         raise Invalid("DOCTYPE root must be plist")
       }
@@ -156,7 +182,12 @@ fn XmlReader::next(
       while self.pos < self.text.length() && self.text[self.pos] != 60 {
         self.pos += 1
       }
-      return Content(unescape_xml_text(self.text[start:self.pos].to_owned()))
+      let raw = self.text[start:self.pos].to_owned()
+      if document &&
+        !raw.all(c => c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+        raise Invalid("non-whitespace outside document element")
+      }
+      return Content(unescape_xml_text(raw))
     }
     self.pos += 1
     if self.pos < self.text.length() && self.text[self.pos] == 47 {
@@ -223,9 +254,10 @@ fn XmlReader::next(
 fn XmlReader::nonspace(
   self : XmlReader,
   preamble~ : Bool = false,
+  document~ : Bool = false,
 ) -> XmlToken raise PlistError {
   while true {
-    match self.next(preamble~) {
+    match self.next(preamble~, document~) {
       Content(s) if s.all(c => c == ' ' || c == '\t' || c == '\n' || c == '\r') =>
         continue
       token => return token
@@ -370,6 +402,9 @@ pub fn decode_xml(
   if @utf8.encode(text).length() > limits.max_bytes {
     raise Limit("XML text budget")
   }
+  if !text.all(c => xml_char(c.to_int())) {
+    raise Invalid("character forbidden by XML 1.0")
+  }
   let reader : XmlReader = {
     text,
     pos: if text.has_prefix("\u{feff}") {
@@ -381,7 +416,7 @@ pub fn decode_xml(
     nodes: 0,
     doctype: false,
   }
-  match reader.nonspace(preamble=true) {
+  match reader.nonspace(preamble=true, document=true) {
     Open("plist", false) => ()
     _ => raise Invalid("expected plist root")
   }
@@ -390,7 +425,7 @@ pub fn decode_xml(
     Close("plist") => ()
     _ => raise Invalid("expected closing plist")
   }
-  match reader.nonspace() {
+  match reader.nonspace(document=true) {
     End => ()
     _ => raise Invalid("trailing XML document content")
   }

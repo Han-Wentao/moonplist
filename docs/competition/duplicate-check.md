@@ -54,3 +54,15 @@ GitHub `per_page=100`：仓库 `plist language:MoonBit`、`property list moonbit
 独立库以纯核心包对接打包/主题/Pkl/检查器，避免依赖任何一方应用模型；binary typed object table、64-bit/UID/date/data、资源边界与事务路径编辑是独立主体，优于在单一模板发射器或解释器里硬塞完整codec。XML读取交集被明确承认，不以附加少量函数掩盖核心重复。
 
 结论仅为：在以上已记录检索与源码边界内，未发现成熟、维护中的 MoonBit binary/XML typed plist 双向库直接替代本项目。不能证明绝对唯一，也不能保证未来没有新包。预留已在实现前持排他锁原子写入共享注册表；旧项目与历史均保留。只有实际发布和消费者验收完成后才能标记 completed。
+
+
+## 2026-10-20 补丁发布前复核
+
+在保留原候选、历史和选题边界的前提下，重新执行8个MoonCakes查询（每个limit100）：`plist`、`bplist`、`propertylist`、`NSKeyedArchiver`、`plistlib`、`CFPropertyList`、`binary plist`、`Info.plist`；另执行5个GitHub仓库/代码反向检索（每页100，排除本仓库）：plist仓库、bplist00代码、plist名称/说明/README、PropertyList代码、decode_binary+plist代码，并重新读取永久注册表。
+
+- 当前MoonCakes结果包括本项目、proton/auto_launch/packaging，以及关键词误匹配的Bencode、JS Object、仿真项目；Bencode是BitTorrent格式，不是Apple plist。
+- 实际复读Typst `syntect/settings.mbt`（明确拒绝binary，XML到Settings，Data报错）及Pkl的XML渲染实现：承认XML处理交集，但不是typed binary/XML双向编解码及结构编辑的直接替代。
+- 读取proton的macOS打包/辅助程序plist模板、auto_launch rendering，以及justjavac auto-launch rendering；读取MoUI打包、lepus打包、cbhook服务和mukuro服务的plist相关实现，均为具体Info.plist/LaunchAgent XML生成，不是通用binary读写库。
+- MoonDesk/moonflux/AnkerScale沿用先前README/元数据筛选；没有将其冒称为全源码审计。当前awesome清单也已复读。
+
+结果：**在所记录的当前检索和源码覆盖范围内，未发现成熟维护的直接替代项目，继续维护MoonPlist**。这不证明全球唯一或其它项目全部源码无重合；XML读取和模板生成的真实功能交集不予隐瞒。原始检索、源码blob/SHA和比对证据保存在仓库外验收记录，不上传私人申报书。

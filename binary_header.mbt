@@ -43,7 +43,7 @@ fn bounded_int(
 
 ///|
 fn valid_width(n : Int32) -> Bool {
-  n == 1 || n == 2 || n == 4 || n == 8
+  n >= 1 && n <= 8
 }
 
 ///|

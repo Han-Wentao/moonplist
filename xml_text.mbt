@@ -38,9 +38,6 @@ pub fn unescape_xml_text(text : String) -> String raise PlistError {
       let start = pos + 1
       pos = start
       while pos < text.length() && text[pos] != 59 {
-        if pos - start > 12 {
-          raise Invalid("XML entity too long")
-        }
         pos += 1
       }
       if pos >= text.length() {

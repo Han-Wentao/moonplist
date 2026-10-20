@@ -120,7 +120,8 @@ pub fn encode_binary(
     id
   }
   let root = flatten(value)
-  let rw = uint_width((objects.length() - 1).to_uint64())
+  // Core Foundation requires the width to represent the count, not only the last ID.
+  let rw = uint_width(objects.length().to_uint64())
   let offsets : Array[Int32] = []
   let out = @buffer.Buffer()
   out.write_bytes(b"bplist00"[:])

@@ -7,6 +7,10 @@ No third-party implementation source or upstream fixtures are incorporated.
 Behavioral references (read, not translated/copied):
 - Apple Property List XML DTD and Core Foundation property-list concepts:
   https://www.apple.com/DTDs/PropertyList-1.0.dtd
+- Core Foundation binary trailer validation (reference only; no source copied):
+  https://github.com/swiftlang/swift-corelibs-foundation/blob/main/Sources/CoreFoundation/CFBinaryPList.c
+- W3C XML 1.0 character reference grammar (reference only):
+  https://www.w3.org/TR/xml/
 - CPython plistlib (Python Software Foundation License 2.0), API/docs and
   3.13 source used to understand binary scalar/trailer semantics:
   https://docs.python.org/3/library/plistlib.html

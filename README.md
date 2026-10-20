@@ -2,12 +2,12 @@
 
 纯 MoonBit 的 Apple Property List 类型化读写与结构编辑库。支持 `bplist00` 二进制和 plist 1.0 XML，面向应用打包、配置交换、元数据检查工具，而不是 macOS 系统设置写入器。
 
-模块：`Han-Wentao/moonplist@0.1.0` · Apache-2.0 · 无第三方运行时依赖。
+模块：`Han-Wentao/moonplist@0.1.1` · Apache-2.0 · 无第三方运行时依赖。
 
 ## 安装与最小使用
 
 ```sh
-moon add Han-Wentao/moonplist@0.1.0
+moon add Han-Wentao/moonplist@0.1.1
 ```
 
 在消费方 `moon.pkg` 加入 `import { "Han-Wentao/moonplist" }`。可在可抛出错误的上下文调用：
@@ -58,7 +58,7 @@ assert_true(@moonplist.lookup(@moonplist.decode(bytes), "/version") == @moonplis
 | Null / UID64 | 支持 | 显式 Unsupported |
 | UTF-8 / UTF-16 XML | 不适用 | 字节入口支持 BOM/常见 UTF-16 起始模式 |
 
-XML 支持预定义/数字实体、注释、处理指令、CDATA、标准 Apple PUBLIC DTD 的原样声明或无外部标识的 `DOCTYPE plist`。不请求网络，不解析内部 DTD、不加载外部实体；非标准 DTD 写法拒绝。XML 是为 plist 设计的受限解析器，不是任意 XML 文档验证器，也不实现命名空间、任意属性、其他编码或 XML 1.1。声明仅接受 UTF-8/UTF-16；不提供声明与原始传输编码严格一致性证明。
+XML 支持预定义/数字实体、注释、ASCII XML 名称的处理指令目标、元素内 CDATA、标准 Apple PUBLIC DTD 的原样声明或无外部标识的 `DOCTYPE plist`。不请求网络，不解析内部 DTD、不加载外部实体；非标准 DTD 写法拒绝。XML 是为 plist 设计的受限解析器，不是任意 XML 文档验证器，也不实现命名空间、任意属性、其他编码或 XML 1.1。声明仅接受 UTF-8/UTF-16；不提供声明与原始传输编码严格一致性证明。
 
 binary 不支持集合、任意精度整数、超过64位 UID、非字符串字典键、归档对象实例化或 legacy OpenStep ASCII。只遍历根可达对象；验证全部对象偏移，但不保证未引用对象体合法，也不要求对象区间互不重叠。不保持引用共享身份、原始对象ID、字节布局或 NaN payload。解码后再写是类型化重建，不是原文件无损补丁。
 
@@ -82,7 +82,9 @@ moon run examples/workflows --target js
 python scripts/differential.py
 ```
 
-44 个命名测试，含畸形二进制、逐字节变异、XML 实体/声明、事务失败与差分回放。差分脚本用固定种子601016生成188个合成输入：Python plistlib → MoonPlist 与 MoonPlist → Python 各188次语义核验；覆盖整数边界、UTF-16代理对、Data、整秒/小数日期、UID/null及宽对象表。Python XML 输入的 CR/LF 以其解析结果为基准，写出方向另检查字符串与负零；不是全面标准认证或性能测试。`examples/interop/main.mbt` 是脚本生成的测试夹具，不计核心代码量。
+0.1.1 有 76 个命名测试（0.1.0 为 44 个），含畸形二进制、逐字节变异、XML 实体/声明、事务失败与差分回放。差分脚本用固定种子601016生成188个合成输入：Python plistlib → MoonPlist 与 MoonPlist → Python 各188次语义核验；覆盖整数边界、UTF-16代理对、Data、整秒/小数日期、UID/null及宽对象表。Python XML 输入的 CR/LF 以其解析结果为基准，写出方向另检查字符串与负零；不是全面标准认证或性能测试。
+
+0.1.1 修复二进制对象数临界值、3/5/6/7 字节宽度、XML 长前导零字符引用、转义路径与差分中间态限额，以及 XML 注释/处理指令/文档外内容的词法校验。新增合法 XML 正控制、数组编辑模型、特殊键路径和512组 IEEE 位模式回归。`examples/interop/main.mbt` 是脚本生成的测试夹具，不计核心代码量。
 
 CI 对 wasm-gc / wasm / js / native 做严格检查和构建，wasm-gc / js / Ubuntu native 运行测试与三个流程；wasm 仅编译。安装官方当前稳定版，版本会在日志中打印，未来版本可能有兼容性差异。最新真实结果见仓库 Actions，不能仅由徽章/本地命令推断通过。
 
